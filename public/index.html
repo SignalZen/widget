@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SignalZen Widget — Embed test page</title>
+    <style>
+      /* Deliberately hostile host-page CSS to prove shadow-DOM isolation. */
+      * { box-sizing: content-box; font-family: "Times New Roman", serif; color: #b91c1c; }
+      html, body { margin: 0; padding: 0; background: #fef3c7; }
+      button, input, textarea { all: revert; }
+      .page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 48px 24px 200px;
+        line-height: 1.7;
+      }
+      h1 { font-size: 32px; margin: 0 0 8px; }
+      h2 { font-size: 20px; margin: 32px 0 8px; }
+      code, pre {
+        font-family: ui-monospace, Menlo, monospace;
+        background: #fde68a;
+        color: #92400e;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      pre { padding: 12px; overflow: auto; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>Hostile host page</h1>
+      <p>
+        This page sets serif fonts, red text, a yellow background, and a global
+        <code>* { box-sizing: content-box }</code> reset. The SignalZen widget
+        in the bottom-right loads via the standard install snippet and must
+        ignore all of it — because it lives inside a Shadow DOM.
+      </p>
+
+      <h2>Install snippet</h2>
+<pre>&lt;script type="text/javascript"&gt;
+var _sz=_sz||{};
+_sz.appId="YOUR_APP_ID";
+(function(){var e=document.createElement("script");e.src="http://localhost:8081/signalzen.js";e.setAttribute("async","true");document.documentElement.firstChild.appendChild(e);var t=setInterval(function(){"undefined"!=typeof SignalZen&&(clearInterval(t),new SignalZen(_sz).load())},10)})();
+&lt;/script&gt;</pre>
+
+      <p>The launcher appears once the session loads. All theming (colors, icon, shape, shadow)
+        is configured in the SignalZen admin console and delivered via the session API.</p>
+
+      <h2>Embedded in a div</h2>
+      <p>Set <code>renderInContainerId</code> to embed the widget inside an existing element.
+        The widget fills 100% of the container's dimensions.</p>
+      <div id="sz_embedded_demo" style="width:392px;height:640px;border:1px solid #d97706;border-radius:24px;overflow:hidden;"></div>
+    </main>
+
+    <script type="text/javascript">
+      window.addEventListener('signalzen.ready', function () {
+        console.log('[SignalZen] ready');
+      });
+      window.addEventListener('signalzen.collapse', function (e) {
+        console.log('[SignalZen] collapse →', e.detail.status);
+      });
+      window.addEventListener('signalzen.messageReceived', function (e) {
+        console.log('[SignalZen] messageReceived', e.detail);
+      });
+      window.addEventListener('signalzen.messageSent', function (e) {
+        console.log('[SignalZen] messageSent', e.detail);
+      });
+      window.addEventListener('signalzen.chatStarted', function (e) {
+        console.log('[SignalZen] chatStarted', e.detail);
+      });
+      window.addEventListener('signalzen.onlineStatusChange', function (e) {
+        console.log('[SignalZen] onlineStatusChange →', e.detail.status);
+      });
+    </script>
+
+    <script type="text/javascript">
+      var _sz = _sz || { language: "german"};
+      _sz.appId = "YOUR_APP_ID";
+      (function () {
+        var e = document.createElement("script");
+        e.src = "http://localhost:8081/signalzen.js";
+        e.setAttribute("async", "true");
+        document.documentElement.firstChild.appendChild(e);
+        var t = setInterval(function () {
+          if (typeof SignalZen !== "undefined") {
+            clearInterval(t);
+            new SignalZen(_sz).load();
+          }
+        }, 10);
+      })();
+    </script>
+  </body>
+</html>
