@@ -65,7 +65,7 @@ All variables are prefixed `VITE_` and inlined at build time. See `.env.example`
   _sz.appId = "YOUR_APP_ID";
   (function () {
     var e = document.createElement("script");
-    e.src = "https://cdn.signalzen.com/v1/signalzen.js";
+    e.src = "https://cdn.signalzen.com/signalzen.js";
     e.setAttribute("async", "true");
     document.documentElement.firstChild.appendChild(e);
     var t = setInterval(function () {
