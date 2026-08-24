@@ -34,6 +34,7 @@ import {
   getGuestUuid,
   getBrowserLanguage,
   getLocalTime,
+  initCookieNamespace,
 } from "@/components/signalzen/backend";
 import cssText from "./widget.css?inline";
 
@@ -62,6 +63,7 @@ const _prefetchPromises = new Map<string, Promise<string | undefined>>();
 function prefetchSession(appId: string, language?: string): Promise<string | undefined> {
   const cached = _prefetchPromises.get(appId);
   if (cached) return cached;
+  initCookieNamespace(appId);
   const promise = (async () => {
     try {
       const windowUuid =

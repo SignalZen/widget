@@ -32,6 +32,8 @@ import {
   readCookie,
   writeCookie,
   destroyCookie,
+  initCookieNamespace,
+  cookieKey,
 } from "./backend";
 import { useThemeStyle } from "./theme";
 import { useProActiveMessages } from "@/lib/utils/proactive";
@@ -880,6 +882,8 @@ export function SignalzenWidget({
   language,
   defaultOpen = false,
 }: WidgetVariant) {
+  if (appId) initCookieNamespace(appId);
+
   const isSmallScreen = useSmallScreen();
   const isMobile = mobile || isSmallScreen;
 
@@ -936,22 +940,22 @@ export function SignalzenWidget({
     setSessionStatus("live");
   }, []);
   const [open, setOpen] = useState(() =>
-    embedded ? true : defaultOpen || readCookie("_signalZen_opened") === "true",
+    embedded ? true : defaultOpen || readCookie(cookieKey("_signalZen_opened")) === "true",
   );
   const [tab, setTab] = useState<Tab>(
-    () => (readCookie("_signalZen_tab") as Tab | undefined) ?? initialTab,
+    () => (readCookie(cookieKey("_signalZen_tab")) as Tab | undefined) ?? initialTab,
   );
   const [screen, setScreen] = useState<Screen>(() => {
-    const t = (readCookie("_signalZen_tab") as Tab | undefined) ?? initialTab;
+    const t = (readCookie(cookieKey("_signalZen_tab")) as Tab | undefined) ?? initialTab;
     if (t === "messages") return "ai-chat";
     if (t === "help") return "help-center";
     return "welcome";
   });
   const [expanded, setExpanded] = useState(
-    () => defaultExpanded || readCookie("_signalZen_expanded") === "true",
+    () => defaultExpanded || readCookie(cookieKey("_signalZen_expanded")) === "true",
   );
   const [gdprAccepted, setGdprAccepted] = useState(
-    () => initialGdprAccepted || readCookie("_signalZen_gdpr_accepted") === "true",
+    () => initialGdprAccepted || readCookie(cookieKey("_signalZen_gdpr_accepted")) === "true",
   );
 
   const readyFired = useRef(false);
@@ -1020,21 +1024,21 @@ export function SignalzenWidget({
   }, [screen]);
 
   useEffect(() => {
-    if (!embedded) writeCookie("_signalZen_opened", open ? "true" : "false");
+    if (!embedded) writeCookie(cookieKey("_signalZen_opened"), open ? "true" : "false");
   }, [embedded, open]);
 
   useEffect(() => {
-    if (expanded) writeCookie("_signalZen_expanded", "true");
-    else destroyCookie("_signalZen_expanded");
+    if (expanded) writeCookie(cookieKey("_signalZen_expanded"), "true");
+    else destroyCookie(cookieKey("_signalZen_expanded"));
   }, [expanded]);
 
   useEffect(() => {
-    if (gdprAccepted) writeCookie("_signalZen_gdpr_accepted", "true");
-    else destroyCookie("_signalZen_gdpr_accepted");
+    if (gdprAccepted) writeCookie(cookieKey("_signalZen_gdpr_accepted"), "true");
+    else destroyCookie(cookieKey("_signalZen_gdpr_accepted"));
   }, [gdprAccepted]);
 
   useEffect(() => {
-    writeCookie("_signalZen_tab", tab);
+    writeCookie(cookieKey("_signalZen_tab"), tab);
   }, [tab]);
 
   const coreProps = {

@@ -117,21 +117,6 @@ function Index() {
               ))}
             </dl>
           </div>
-
-          {/* Live widget preview */}
-          <div className="relative">
-            <div className="absolute inset-0 -z-10 rounded-[40px] bg-subtle/60" />
-            <div className="flex min-h-[680px] items-end justify-end p-8">
-              <div className="relative" style={{ width: 392, height: 640 }}>
-                <SignalzenWidget
-                  embedded
-                  initialScreen="ai-chat"
-                  initialTab="messages"
-                  appId="YOUR_APP_ID"
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

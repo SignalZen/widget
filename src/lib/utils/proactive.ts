@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ApiMessage, ProActiveMessage, ProActiveClient } from "@/components/signalzen/backend";
-import { readCookie, writeCookie, getUserUuid, postProActiveMessageTrigger } from "@/components/signalzen/backend";
+import { readCookie, writeCookie, getUserUuid, postProActiveMessageTrigger, cookieKey } from "@/components/signalzen/backend";
 
 export type { ProActiveMessage, ProActiveClient };
 
@@ -26,7 +26,7 @@ const COOKIE_FIRST_VISIT = "_signalZen_first_visit";
 const COOKIE_FIRST_OPEN = "_signalZen_first_open";
 
 function loadStored(): StoredInvitation[] {
-  const raw = readCookie(COOKIE_AUTO_INVITATIONS);
+  const raw = readCookie(cookieKey(COOKIE_AUTO_INVITATIONS));
   if (!raw) return [];
   try {
     return JSON.parse(decodeURIComponent(raw)) as StoredInvitation[];
@@ -36,7 +36,7 @@ function loadStored(): StoredInvitation[] {
 }
 
 function saveStored(items: StoredInvitation[]): void {
-  writeCookie(COOKIE_AUTO_INVITATIONS, JSON.stringify(items));
+  writeCookie(cookieKey(COOKIE_AUTO_INVITATIONS), JSON.stringify(items));
 }
 
 function genUuid(): string {
@@ -138,8 +138,8 @@ export function useProActiveMessages({
 
   // Record first_visit timestamp once, ever
   useEffect(() => {
-    if (!readCookie(COOKIE_FIRST_VISIT)) {
-      writeCookie(COOKIE_FIRST_VISIT, new Date().toISOString());
+    if (!readCookie(cookieKey(COOKIE_FIRST_VISIT))) {
+      writeCookie(cookieKey(COOKIE_FIRST_VISIT), new Date().toISOString());
     }
   }, []);
 
@@ -216,7 +216,7 @@ export function useProActiveMessages({
     if (messages.length === 0 || firstVisitScheduled.current || getUserUuid()) return;
     firstVisitScheduled.current = true;
 
-    const firstVisitAt = readCookie(COOKIE_FIRST_VISIT);
+    const firstVisitAt = readCookie(cookieKey(COOKIE_FIRST_VISIT));
     const reference = firstVisitAt ? new Date(firstVisitAt) : new Date();
     const storedIds = new Set(loadStored().map((s) => s.id));
 
@@ -231,11 +231,11 @@ export function useProActiveMessages({
   // Also called on first widget open.
   const handleFirstOpen = useCallback((fromSessionLoad = false) => {
     if (firstOpenScheduled.current || getUserUuid()) return;
-    const hadFirstOpen = readCookie(COOKIE_FIRST_OPEN);
+    const hadFirstOpen = readCookie(cookieKey(COOKIE_FIRST_OPEN));
     if (fromSessionLoad && !hadFirstOpen) return;
     firstOpenScheduled.current = true;
 
-    if (!hadFirstOpen) writeCookie(COOKIE_FIRST_OPEN, new Date().toISOString());
+    if (!hadFirstOpen) writeCookie(cookieKey(COOKIE_FIRST_OPEN), new Date().toISOString());
     const reference = hadFirstOpen ? new Date(hadFirstOpen) : new Date();
     const storedIds = new Set(loadStored().map((s) => s.id));
 

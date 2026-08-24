@@ -28,8 +28,22 @@ const CABLE_URL = import.meta.env.VITE_CABLE_URL ?? "wss://api.signalzen.com/web
 // Session endpoints are served by the Node layer in development; fall back to API_HOST when unset.
 const SESSION_HOST = import.meta.env.VITE_API_NODE_HOST || API_HOST;
 
-const GUEST_UUID_KEY = "_signalZen_guest_uuid";
-const USER_UUID_KEY = "_signalZen_uuid";
+let _cookieAppId: string | undefined;
+
+export function initCookieNamespace(id: string): void {
+  _cookieAppId = id;
+}
+
+export function cookieKey(name: string): string {
+  return _cookieAppId ? `${name}_${_cookieAppId}` : name;
+}
+
+function guestUuidKey() {
+  return cookieKey("_signalZen_guest_uuid");
+}
+function userUuidKey() {
+  return cookieKey("_signalZen_uuid");
+}
 
 export function readCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;
@@ -59,16 +73,16 @@ function uuid(): string {
 }
 
 export function getGuestUuid(): string {
-  let id = readCookie(GUEST_UUID_KEY);
+  let id = readCookie(guestUuidKey());
   if (!id) {
     id = uuid();
-    writeCookie(GUEST_UUID_KEY, id);
+    writeCookie(guestUuidKey(), id);
   }
   return id;
 }
 
 export function getUserUuid(): string | undefined {
-  return readCookie(USER_UUID_KEY);
+  return readCookie(userUuidKey());
 }
 
 export function getBrowserLanguage(): string {
@@ -461,7 +475,7 @@ export async function createUser(
       },
     },
   );
-  writeCookie(USER_UUID_KEY, user.uuid);
+  writeCookie(userUuidKey(), user.uuid);
   return user;
 }
 
@@ -508,7 +522,7 @@ export type ProActivePayloadItem = {
 };
 
 export function getStoredAutoInvitations(): ProActivePayloadItem[] {
-  const raw = readCookie("_signalZen_auto_invitations");
+  const raw = readCookie(cookieKey("_signalZen_auto_invitations"));
   if (!raw) return [];
   try {
     const stored = JSON.parse(decodeURIComponent(raw)) as Array<{
@@ -811,14 +825,14 @@ export async function deleteUser(appId: string, userUuid: string): Promise<void>
 }
 
 export function clearUserSession(): void {
-  destroyCookie(USER_UUID_KEY);
-  destroyCookie(GUEST_UUID_KEY);
-  destroyCookie("_signalZen_opened");
-  destroyCookie("_signalZen_expanded");
-  destroyCookie("_signalZen_gdpr_accepted");
-  destroyCookie("_signalZen_auto_invitations");
-  destroyCookie("_signalZen_first_visit");
-  destroyCookie("_signalZen_first_open");
+  destroyCookie(userUuidKey());
+  destroyCookie(guestUuidKey());
+  destroyCookie(cookieKey("_signalZen_opened"));
+  destroyCookie(cookieKey("_signalZen_expanded"));
+  destroyCookie(cookieKey("_signalZen_gdpr_accepted"));
+  destroyCookie(cookieKey("_signalZen_auto_invitations"));
+  destroyCookie(cookieKey("_signalZen_first_visit"));
+  destroyCookie(cookieKey("_signalZen_first_open"));
 }
 
 export async function requestTranscript(appId: string, userUuid: string): Promise<void> {

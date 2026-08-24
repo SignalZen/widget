@@ -13,7 +13,7 @@ import { type Tab } from "./types";
 import { Avatar, AvatarStack, IconBtn } from "./primitives";
 import { useSession } from "../SessionProvider";
 import { useBackend } from "../useSignalzenBackend";
-import { readCookie, writeCookie, destroyCookie } from "../backend";
+import { readCookie, writeCookie, destroyCookie, cookieKey } from "../backend";
 
 export function Header({
   title,
@@ -99,7 +99,9 @@ export function ExpandableChatHeader({
   showBack?: boolean;
 }) {
   const { operators, account, anyOnline, translation } = useSession();
-  const [open, setOpen] = useState(() => readCookie("_signalZen_header_expanded") === "true");
+  const [open, setOpen] = useState(
+    () => readCookie(cookieKey("_signalZen_header_expanded")) === "true",
+  );
   const forceOnline = account?.online_status === "online";
   const aiActive = account !== undefined ? !!account.ai_enabled : !!aiOn;
   const isSingleOperator = operators.length === 1 && !aiActive;
@@ -132,8 +134,8 @@ export function ExpandableChatHeader({
               onClick: () =>
                 setOpen((v) => {
                   const next = !v;
-                  if (next) writeCookie("_signalZen_header_expanded", "true");
-                  else destroyCookie("_signalZen_header_expanded");
+                  if (next) writeCookie(cookieKey("_signalZen_header_expanded"), "true");
+                  else destroyCookie(cookieKey("_signalZen_header_expanded"));
                   return next;
                 }),
               role: "button",
@@ -144,8 +146,8 @@ export function ExpandableChatHeader({
                   e.preventDefault();
                   setOpen((v) => {
                     const next = !v;
-                    if (next) writeCookie("_signalZen_header_expanded", "true");
-                    else destroyCookie("_signalZen_header_expanded");
+                    if (next) writeCookie(cookieKey("_signalZen_header_expanded"), "true");
+                    else destroyCookie(cookieKey("_signalZen_header_expanded"));
                     return next;
                   });
                 }
