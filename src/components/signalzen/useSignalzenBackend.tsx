@@ -224,7 +224,7 @@ export function SignalzenBackendProvider({
           if (typeof message.id === "number") {
             // Mark as read (widget open) or delivered (widget closed) on the server
             const attr = isOpenRef.current
-              ? { read_last_message_id: message.id }
+              ? { read_last_message_id: message.id, delivered_last_message_id: message.id }
               : { delivered_last_message_id: message.id };
             updateUser(appId, userUuid, attr).catch(() => {});
             if (isOpenRef.current) setUnread(0);
@@ -308,7 +308,7 @@ export function SignalzenBackendProvider({
         const lastMsg = sorted[sorted.length - 1];
         if (lastMsg && typeof lastMsg.id === "number") {
           const attr = isOpenRef.current
-            ? { read_last_message_id: lastMsg.id }
+            ? { read_last_message_id: lastMsg.id, delivered_last_message_id: lastMsg.id }
             : { delivered_last_message_id: lastMsg.id };
           updateUser(appId, userUuid, attr).catch(() => {});
         }
@@ -363,7 +363,10 @@ export function SignalzenBackendProvider({
         if (appId && userUuid && messages.length > 0) {
           const lastMsg = messages[messages.length - 1];
           if (typeof lastMsg.id === "number") {
-            updateUser(appId, userUuid, { read_last_message_id: lastMsg.id }).catch(() => {});
+            updateUser(appId, userUuid, {
+              read_last_message_id: lastMsg.id,
+              delivered_last_message_id: lastMsg.id,
+            }).catch(() => {});
           }
         }
       },
