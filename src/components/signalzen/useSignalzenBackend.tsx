@@ -17,6 +17,8 @@ import {
   getGuestUuid,
   getLocalTime,
   getStoredAutoInvitations,
+  getStoredDeliveredLastId,
+  getStoredReadLastId,
   getUserData,
   getUserUuid,
   loadMessage,
@@ -28,6 +30,8 @@ import {
   requestTranscript,
   type SocketCallbacks,
   type SocketHandle,
+  storeDeliveredLastId,
+  storeReadLastId,
   updateUser,
   updateUserData,
 } from "./backend";
@@ -222,11 +226,18 @@ export function SignalzenBackendProvider({
             new CustomEvent("signalzen.messageReceived", { detail: { message } }),
           );
           if (typeof message.id === "number") {
-            // Mark as read (widget open) or delivered (widget closed) on the server
-            const attr = isOpenRef.current
-              ? { read_last_message_id: message.id, delivered_last_message_id: message.id }
-              : { delivered_last_message_id: message.id };
-            updateUser(appId, userUuid, attr).catch(() => {});
+            // Mark as read (widget open) or delivered (widget closed) on the server,
+            // skipping the request when the ID was already reported via cookie.
+            const attr: Record<string, number> = {};
+            if (message.id > getStoredDeliveredLastId()) {
+              attr.delivered_last_message_id = message.id;
+              storeDeliveredLastId(message.id);
+            }
+            if (isOpenRef.current && message.id > getStoredReadLastId()) {
+              attr.read_last_message_id = message.id;
+              storeReadLastId(message.id);
+            }
+            if (Object.keys(attr).length > 0) updateUser(appId, userUuid, attr).catch(() => {});
             if (isOpenRef.current) setUnread(0);
             // Re-fetch from REST to get fresh presigned file URLs and complete data.
             // The websocket payload may have stale or missing file URLs; the REST
@@ -304,13 +315,20 @@ export function SignalzenBackendProvider({
         if (cancelled) return;
         const sorted = (list.messages ?? []).slice().reverse();
         setMessages(sorted);
-        // Notify server of delivered/read state for the last message
+        // Notify server of delivered/read state for the last message,
+        // skipping the request when the ID was already reported via cookie.
         const lastMsg = sorted[sorted.length - 1];
         if (lastMsg && typeof lastMsg.id === "number") {
-          const attr = isOpenRef.current
-            ? { read_last_message_id: lastMsg.id, delivered_last_message_id: lastMsg.id }
-            : { delivered_last_message_id: lastMsg.id };
-          updateUser(appId, userUuid, attr).catch(() => {});
+          const attr: Record<string, number> = {};
+          if (lastMsg.id > getStoredDeliveredLastId()) {
+            attr.delivered_last_message_id = lastMsg.id;
+            storeDeliveredLastId(lastMsg.id);
+          }
+          if (isOpenRef.current && lastMsg.id > getStoredReadLastId()) {
+            attr.read_last_message_id = lastMsg.id;
+            storeReadLastId(lastMsg.id);
+          }
+          if (Object.keys(attr).length > 0) updateUser(appId, userUuid, attr).catch(() => {});
         }
       } catch {
         /* ignore */
@@ -363,10 +381,16 @@ export function SignalzenBackendProvider({
         if (appId && userUuid && messages.length > 0) {
           const lastMsg = messages[messages.length - 1];
           if (typeof lastMsg.id === "number") {
-            updateUser(appId, userUuid, {
-              read_last_message_id: lastMsg.id,
-              delivered_last_message_id: lastMsg.id,
-            }).catch(() => {});
+            const attr: Record<string, number> = {};
+            if (lastMsg.id > getStoredDeliveredLastId()) {
+              attr.delivered_last_message_id = lastMsg.id;
+              storeDeliveredLastId(lastMsg.id);
+            }
+            if (lastMsg.id > getStoredReadLastId()) {
+              attr.read_last_message_id = lastMsg.id;
+              storeReadLastId(lastMsg.id);
+            }
+            if (Object.keys(attr).length > 0) updateUser(appId, userUuid, attr).catch(() => {});
           }
         }
       },
