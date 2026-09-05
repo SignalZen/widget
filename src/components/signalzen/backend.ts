@@ -824,6 +824,24 @@ export async function deleteUser(appId: string, userUuid: string): Promise<void>
   );
 }
 
+export function getStoredDeliveredLastId(): number {
+  const raw = readCookie(cookieKey("_signalZen_delivered_last"));
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+export function getStoredReadLastId(): number {
+  const raw = readCookie(cookieKey("_signalZen_read_last"));
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+export function storeDeliveredLastId(id: number): void {
+  writeCookie(cookieKey("_signalZen_delivered_last"), String(id));
+}
+
+export function storeReadLastId(id: number): void {
+  writeCookie(cookieKey("_signalZen_read_last"), String(id));
+}
+
 export function clearUserSession(): void {
   destroyCookie(userUuidKey());
   destroyCookie(guestUuidKey());
@@ -833,6 +851,8 @@ export function clearUserSession(): void {
   destroyCookie(cookieKey("_signalZen_auto_invitations"));
   destroyCookie(cookieKey("_signalZen_first_visit"));
   destroyCookie(cookieKey("_signalZen_first_open"));
+  destroyCookie(cookieKey("_signalZen_delivered_last"));
+  destroyCookie(cookieKey("_signalZen_read_last"));
 }
 
 export async function requestTranscript(appId: string, userUuid: string): Promise<void> {

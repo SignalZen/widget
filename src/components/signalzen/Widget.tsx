@@ -248,6 +248,20 @@ function WidgetCore({
     if (open && tab === "messages") markRead();
   }, [open, tab, markRead]);
 
+  useEffect(() => {
+    if (!open || tab !== "messages") return;
+    const onFocus = () => markRead();
+    const onVisible = () => {
+      if (!document.hidden) markRead();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [open, tab, markRead]);
+
   // Proactive popup: last unread proactive message
   const unreadProActive = hookedProActiveMessages.filter((m) => unreadIds.has(m.id));
   const proactivePopup = !open ? (unreadProActive[unreadProActive.length - 1] ?? null) : null;
