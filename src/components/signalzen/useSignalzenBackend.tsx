@@ -221,10 +221,16 @@ export function SignalzenBackendProvider({
           window.dispatchEvent(
             new CustomEvent("signalzen.messageReceived", { detail: { message } }),
           );
-          // Re-fetch from REST to get fresh presigned file URLs and complete data.
-          // The websocket payload may have stale or missing file URLs; the REST
-          // response always generates them fresh at request time.
           if (typeof message.id === "number") {
+            // Mark as read (widget open) or delivered (widget closed) on the server
+            const attr = isOpenRef.current
+              ? { read_last_message_id: message.id }
+              : { delivered_last_message_id: message.id };
+            updateUser(appId, userUuid, attr).catch(() => {});
+            if (isOpenRef.current) setUnread(0);
+            // Re-fetch from REST to get fresh presigned file URLs and complete data.
+            // The websocket payload may have stale or missing file URLs; the REST
+            // response always generates them fresh at request time.
             loadMessage(appId, userUuid, message.id)
               .then((fresh) =>
                 setMessages((prev) => prev.map((m) => (m.id === fresh.id ? fresh : m))),
@@ -296,7 +302,16 @@ export function SignalzenBackendProvider({
       try {
         const list = await loadMessages(appId, userUuid, 20, 0);
         if (cancelled) return;
-        setMessages((list.messages ?? []).slice().reverse());
+        const sorted = (list.messages ?? []).slice().reverse();
+        setMessages(sorted);
+        // Notify server of delivered/read state for the last message
+        const lastMsg = sorted[sorted.length - 1];
+        if (lastMsg && typeof lastMsg.id === "number") {
+          const attr = isOpenRef.current
+            ? { read_last_message_id: lastMsg.id }
+            : { delivered_last_message_id: lastMsg.id };
+          updateUser(appId, userUuid, attr).catch(() => {});
+        }
       } catch {
         /* ignore */
       }
@@ -342,7 +357,16 @@ export function SignalzenBackendProvider({
       userEmail,
       captchaVisible,
       onCaptchaSolved,
-      markRead: () => setUnread(0),
+      markRead: () => {
+        setUnread(0);
+        const userUuid = getUserUuid();
+        if (appId && userUuid && messages.length > 0) {
+          const lastMsg = messages[messages.length - 1];
+          if (typeof lastMsg.id === "number") {
+            updateUser(appId, userUuid, { read_last_message_id: lastMsg.id }).catch(() => {});
+          }
+        }
+      },
       sendTranscript: async (email: string) => {
         if (!appId) throw new Error("No appId");
         const uuid = getUserUuid();
