@@ -28,15 +28,21 @@ const COOKIE_FIRST_OPEN = "_signalZen_first_open";
 function loadStored(): StoredInvitation[] {
   const raw = readCookie(cookieKey(COOKIE_AUTO_INVITATIONS));
   if (!raw) return [];
+  // Try base64-encoded JSON first (current format), fall back to legacy plain JSON.
   try {
-    return JSON.parse(decodeURIComponent(raw)) as StoredInvitation[];
+    return JSON.parse(atob(raw)) as StoredInvitation[];
   } catch {
-    return [];
+    try {
+      return JSON.parse(raw) as StoredInvitation[];
+    } catch {
+      return [];
+    }
   }
 }
 
 function saveStored(items: StoredInvitation[]): void {
-  writeCookie(cookieKey(COOKIE_AUTO_INVITATIONS), JSON.stringify(items));
+  // Base64-encode so the cookie contains only [A-Za-z0-9+/=] — avoids WAF false positives on JSON tokens.
+  writeCookie(cookieKey(COOKIE_AUTO_INVITATIONS), btoa(JSON.stringify(items)));
 }
 
 function genUuid(): string {
