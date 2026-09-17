@@ -42,6 +42,25 @@ const CDN_WIDGET_URL =
   (import.meta.env.VITE_CDN_WIDGET_V1_URL as string) ?? "https://cdn.signalzen.com/v1/signalzen.js";
 const NEW_WIDGET_VERSION = "v2";
 
+// Capture the script src while the IIFE is executing — document.currentScript
+// is only available synchronously during script evaluation.
+const _scriptSrc: string =
+  typeof document !== "undefined" && document.currentScript instanceof HTMLScriptElement
+    ? document.currentScript.src
+    : "";
+
+// Allow a custom window property name so multiple widget instances can coexist
+// on the same page (e.g. a preview widget alongside the site's own support widget).
+// Load as signalzen.js?_global=SzPreview and wait for window.SzPreview instead
+// of window.SignalZen.
+const _globalName: string = (() => {
+  try {
+    return new URL(_scriptSrc).searchParams.get("_global") ?? "SignalZen";
+  } catch {
+    return "SignalZen";
+  }
+})();
+
 type Config = {
   appId?: string;
   language?: string;
@@ -49,9 +68,17 @@ type Config = {
   userData?: Record<string, unknown>;
   invisible?: boolean;
   renderInContainerId?: string;
+  // When renderInContainerId is set, embedded defaults to true (chat-panel only).
+  // Pass embedded: false to render the full floating widget (launcher icon + panel)
+  // inside the container — the container must have a CSS transform so that
+  // position:fixed children are contained within it rather than the viewport.
+  embedded?: boolean;
+  // When true, the v1 widget renders at its natural size (not filling the container)
+  // positioned within it — used by the widget-settings preview panel.
+  preview?: boolean;
 };
 
-const HOST_ID = "signalzen-root";
+const HOST_ID = _globalName === "SignalZen" ? "signalzen-root" : `signalzen-root-${_globalName}`;
 const FONT_LINK_ID = "signalzen-font";
 
 // Stored so show() / hide() can target it regardless of mode.
@@ -100,12 +127,39 @@ function loadLegacyWidget(cfg: Config) {
       ...(cfg.userData ? { userData: cfg.userData } : {}),
       ...(cfg.renderInContainerId ? { renderInContainerId: cfg.renderInContainerId } : {}),
       ...(cfg.invisible ? { invisible: cfg.invisible } : {}),
+      ...(cfg.preview ? { preview: cfg.preview } : {}),
     };
     const script = document.createElement("script");
-    script.src = CDN_WIDGET_URL;
+    // When loading as a preview widget (e.g. _globalName='SignalZenPreview'), pass
+    // ?_global= so the v1 IIFE registers itself on the correct window property and
+    // uses a separate singleton variable, keeping it fully isolated from the
+    // production "Get Support" widget on window.SignalZen.
+    script.src =
+      _globalName !== "SignalZen" ? `${CDN_WIDGET_URL}?_global=${_globalName}` : CDN_WIDGET_URL;
+    // Set __szNextGlobal as a reliable fallback for the v1 bundle's _globalName
+    // detection.  document.currentScript can be null inside async-loaded scripts
+    // in some browser/context combinations; reading this window property is not
+    // subject to that constraint.
+    if (_globalName !== "SignalZen") {
+      (window as Record<string, unknown>).__szNextGlobal = _globalName;
+    }
     script.async = true;
+    // Capture window.SignalZen now (already restored by WidgetPreview's v2 onload)
+    // so we can fix it after the v1 UMD wrapper overwrites it below.
+    const savedSignalZen =
+      _globalName !== "SignalZen" ? (window as Record<string, unknown>).SignalZen : undefined;
     script.onload = () => {
-      const Sz = window.SignalZen;
+      // The v1 UMD wrapper always writes window.SignalZen = <v1 class>.
+      // For non-default instances restore it so the production GS widget is unaffected.
+      if (_globalName !== "SignalZen") {
+        if (savedSignalZen !== undefined) {
+          window.SignalZen = savedSignalZen as typeof window.SignalZen;
+        } else {
+          delete (window as Record<string, unknown>).SignalZen;
+        }
+      }
+      const Sz = (window as Record<string, unknown>)[_globalName] as
+        typeof window.SignalZen | undefined;
       if (!Sz) return;
       new Sz((window as Record<string, unknown>)._sz as Config).load();
       // Push the prefetched session via the old widget's public API so it can
@@ -149,6 +203,8 @@ function attachShadowAndRender(host: HTMLElement, cfg: Config, embedded: boolean
         language={cfg.language}
         defaultOpen={cfg.defaultOpen}
         embedded={embedded}
+        instanceId={_globalName}
+        preview={cfg.preview}
       />
     </React.StrictMode>,
   );
@@ -168,10 +224,9 @@ function mount(cfg: Config) {
     const container = document.getElementById(cfg.renderInContainerId);
     if (!container) return;
 
+    const isEmbedded = cfg.embedded !== false;
     const host = document.createElement("div");
-    const inlineDecls: Array<[string, string]> = [
-      ["width", "100%"],
-      ["height", "100%"],
+    const fontDecls: Array<[string, string]> = [
       [
         "font-family",
         '"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
@@ -187,11 +242,33 @@ function mount(cfg: Config) {
       ["text-indent", "0"],
       ["direction", "ltr"],
     ];
-    for (const [k, v] of inlineDecls) host.style.setProperty(k, v, "important");
+    if (isEmbedded) {
+      const inlineDecls: Array<[string, string]> = [
+        ["width", "100%"],
+        ["height", "100%"],
+        ...fontDecls,
+      ];
+      for (const [k, v] of inlineDecls) host.style.setProperty(k, v, "important");
+    } else {
+      // Floating-in-container: cover the container with pointer-events:none so the
+      // widget's position:fixed launcher/panel are contained by the container's
+      // CSS transform rather than the viewport.
+      const inlineDecls: Array<[string, string]> = [
+        ["position", "absolute"],
+        ["top", "0"],
+        ["left", "0"],
+        ["right", "0"],
+        ["bottom", "0"],
+        ["pointer-events", "none"],
+        ["z-index", "2147483000"],
+        ...fontDecls,
+      ];
+      for (const [k, v] of inlineDecls) host.style.setProperty(k, v, "important");
+    }
     if (cfg.invisible) host.style.setProperty("display", "none", "important");
     container.appendChild(host);
     _hostEl = host;
-    attachShadowAndRender(host, cfg, true);
+    attachShadowAndRender(host, cfg, isEmbedded);
     return;
   }
 
@@ -272,11 +349,19 @@ class SignalZen {
   }
   static expand() {
     if (typeof document !== "undefined")
-      document.dispatchEvent(new CustomEvent("signalzen.expand"));
+      document.dispatchEvent(
+        new CustomEvent(
+          _globalName === "SignalZen" ? "signalzen.expand" : `signalzen.expand.${_globalName}`,
+        ),
+      );
   }
   static suspend() {
     if (typeof document !== "undefined")
-      document.dispatchEvent(new CustomEvent("signalzen.suspend"));
+      document.dispatchEvent(
+        new CustomEvent(
+          _globalName === "SignalZen" ? "signalzen.suspend" : `signalzen.suspend.${_globalName}`,
+        ),
+      );
   }
   pushUserData(data: Record<string, unknown>) {
     SignalZen.pushUserData(data);
@@ -302,7 +387,7 @@ declare global {
 }
 
 if (typeof window !== "undefined") {
-  window.SignalZen = SignalZen;
+  (window as Record<string, unknown>)[_globalName] = SignalZen;
 }
 
 export default SignalZen;
