@@ -141,12 +141,14 @@ function SessionTheme({
   floating,
   isMobile,
   open,
+  preview,
 }: {
   children: React.ReactNode;
   className?: string;
   floating?: boolean;
   isMobile?: boolean;
   open?: boolean;
+  preview?: boolean;
 }) {
   const { account, locale } = useSession();
   const themeStyle = useThemeStyle(
@@ -160,6 +162,7 @@ function SessionTheme({
     if (!floating) return [{}, ""];
     const zIdx = account?.z_index ?? 10001;
     if (isMobile && open) return [{ zIndex: zIdx }, ""];
+    if (preview) return [{ right: "20px", bottom: "20px", zIndex: zIdx }, "items-end"];
     const hPos = account?.horizontal_position ?? "right";
     const vPos = account?.vertical_position ?? "bottom";
     const hOff = account?.horizontal_offset ?? 20;
@@ -168,7 +171,7 @@ function SessionTheme({
       { [hPos]: `${hOff}px`, [vPos]: `${vOff}px`, zIndex: zIdx },
       hPos === "left" ? "items-start" : "items-end",
     ];
-  }, [account, floating, isMobile, open]);
+  }, [account, floating, isMobile, open, preview]);
 
   const fullClass = [className, alignClass].filter(Boolean).join(" ");
 
@@ -895,6 +898,8 @@ export function SignalzenWidget({
   appId,
   language,
   defaultOpen = false,
+  instanceId = "SignalZen",
+  preview = false,
 }: WidgetVariant) {
   if (appId) initCookieNamespace(appId);
 
@@ -953,8 +958,17 @@ export function SignalzenWidget({
     setSession(s);
     setSessionStatus("live");
   }, []);
-  const [open, setOpen] = useState(() =>
-    embedded ? true : defaultOpen || readCookie(cookieKey("_signalZen_opened")) === "true",
+  const [open, setOpenRaw] = useState(() =>
+    preview || embedded
+      ? true
+      : defaultOpen || readCookie(cookieKey("_signalZen_opened")) === "true",
+  );
+  const setOpen = useCallback(
+    (v: boolean | ((prev: boolean) => boolean)) => {
+      if (preview) return;
+      setOpenRaw(v);
+    },
+    [preview],
   );
   const [tab, setTab] = useState<Tab>(
     () => (readCookie(cookieKey("_signalZen_tab")) as Tab | undefined) ?? initialTab,
@@ -1022,13 +1036,17 @@ export function SignalzenWidget({
   useEffect(() => {
     const onExpand = () => setOpen(true);
     const onSuspend = () => setOpen(false);
-    document.addEventListener("signalzen.expand", onExpand);
-    document.addEventListener("signalzen.suspend", onSuspend);
+    const expandEvent =
+      instanceId === "SignalZen" ? "signalzen.expand" : `signalzen.expand.${instanceId}`;
+    const suspendEvent =
+      instanceId === "SignalZen" ? "signalzen.suspend" : `signalzen.suspend.${instanceId}`;
+    document.addEventListener(expandEvent, onExpand);
+    document.addEventListener(suspendEvent, onSuspend);
     return () => {
-      document.removeEventListener("signalzen.expand", onExpand);
-      document.removeEventListener("signalzen.suspend", onSuspend);
+      document.removeEventListener(expandEvent, onExpand);
+      document.removeEventListener(suspendEvent, onSuspend);
     };
-  }, []);
+  }, [instanceId]);
 
   useEffect(() => {
     if (screen === "welcome") setTab("home");
@@ -1038,8 +1056,8 @@ export function SignalzenWidget({
   }, [screen]);
 
   useEffect(() => {
-    if (!embedded) writeCookie(cookieKey("_signalZen_opened"), open ? "true" : "false");
-  }, [embedded, open]);
+    if (!embedded && !preview) writeCookie(cookieKey("_signalZen_opened"), open ? "true" : "false");
+  }, [embedded, preview, open]);
 
   useEffect(() => {
     if (expanded) writeCookie(cookieKey("_signalZen_expanded"), "true");
@@ -1089,6 +1107,7 @@ export function SignalzenWidget({
             floating={!embedded}
             isMobile={isMobile}
             open={open}
+            preview={preview}
           >
             <WidgetCore {...coreProps} />
           </SessionTheme>

@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: false,
     minify: mode === "production" ? "esbuild" : false,
     sourcemap: mode !== "production",
-    watch: mode !== "production" ? {} : null,
+    watch: mode !== "production" && !process.env.NO_WATCH ? {} : null,
     lib: {
       entry: resolve(import.meta.dirname, "src/widget/embed.tsx"),
       name: "SignalZenBundle",

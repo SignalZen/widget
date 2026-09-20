@@ -41,6 +41,13 @@ export type WidgetVariant = {
   language?: string;
   /** Start the widget open regardless of the stored cookie (used for previews). */
   defaultOpen?: boolean;
+  /** Window property name this instance is registered under (e.g. "SignalZenPreview").
+   *  Used to namespace expand/suspend document events so multiple instances don't
+   *  interfere with each other. Defaults to "SignalZen". */
+  instanceId?: string;
+  /** When true, the widget stays permanently open and cannot be closed — used by
+   *  the widget-settings preview panel. */
+  preview?: boolean;
 };
 
 export type Operator = {
