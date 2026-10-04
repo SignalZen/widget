@@ -653,10 +653,12 @@ export type HelpItem = {
   position?: number;
   suggested?: boolean;
   pinned?: boolean;
+  show_in_widget?: boolean;
+  show_in_help_center?: boolean;
 };
 
 export async function fetchSuggestedHelps(appId: string): Promise<HelpItem[]> {
-  const query = `sort=position&direction=ASC&suggested=true&bl=${encodeURIComponent(getBrowserLanguage())}&limit=5&offset=0`;
+  const query = `sort=position&direction=ASC&suggested=true&show_in_widget=true&bl=${encodeURIComponent(getBrowserLanguage())}&limit=5&offset=0`;
   const { helps } = await jsonRequest<{ helps: HelpItem[] }>(
     "GET",
     `${API_HOST}/guests/accounts/${encodeURIComponent(appId)}/helps.json?${query}`,
@@ -665,7 +667,7 @@ export async function fetchSuggestedHelps(appId: string): Promise<HelpItem[]> {
 }
 
 export async function fetchPinnedHelps(appId: string): Promise<HelpItem[]> {
-  const query = `sort=position&direction=ASC&pinned=true&bl=${encodeURIComponent(getBrowserLanguage())}&limit=5&offset=0`;
+  const query = `sort=position&direction=ASC&pinned=true&show_in_widget=true&bl=${encodeURIComponent(getBrowserLanguage())}&limit=5&offset=0`;
   const { helps } = await jsonRequest<{ helps: HelpItem[] }>(
     "GET",
     `${API_HOST}/guests/accounts/${encodeURIComponent(appId)}/helps.json?${query}`,
@@ -684,6 +686,7 @@ export async function fetchHelps(
     direction: "ASC",
     limit: "100",
     bl: getBrowserLanguage(),
+    show_in_widget: "true",
   };
   if (parentId !== undefined) params.parent_id = String(parentId);
   if (query) params.query = query;
