@@ -357,6 +357,22 @@ export function SignalzenBackendProvider({
     return () => document.removeEventListener("signalzen.pushUserData", handler);
   }, [appId]);
 
+  // Reset socket and messages when UUID changes via changeUuid()
+  useEffect(() => {
+    const handler = () => {
+      socketRef.current?.close();
+      socketRef.current = null;
+      typingTimersRef.current.forEach(clearTimeout);
+      typingTimersRef.current.clear();
+      setMessages([]);
+      setUnread(0);
+      setTypingClientIds([]);
+      setUserEmail(undefined);
+    };
+    document.addEventListener("signalzen.changeUuid", handler);
+    return () => document.removeEventListener("signalzen.changeUuid", handler);
+  }, []);
+
   // Disconnect socket on unmount
   useEffect(() => {
     return () => {
