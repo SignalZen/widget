@@ -845,6 +845,10 @@ export function storeReadLastId(id: number): void {
   writeCookie(cookieKey("_signalZen_read_last"), String(id));
 }
 
+export function writeUserUuid(uuid: string): void {
+  writeCookie(userUuidKey(), uuid);
+}
+
 export function clearUserSession(): void {
   destroyCookie(userUuidKey());
   destroyCookie(guestUuidKey());

@@ -35,6 +35,7 @@ import {
   getBrowserLanguage,
   getLocalTime,
   initCookieNamespace,
+  writeUserUuid,
 } from "@/components/signalzen/backend";
 import cssText from "./widget.css?inline";
 
@@ -376,6 +377,15 @@ class SignalZen {
     document.dispatchEvent(
       new CustomEvent("signalzen.triggerProActiveMessage", { detail: { shortcut } }),
     );
+  }
+  changeUuid(uuid: string) {
+    SignalZen.changeUuid(uuid);
+  }
+  static changeUuid(uuid: string) {
+    writeUserUuid(uuid);
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("signalzen.changeUuid", { detail: { uuid } }));
+    }
   }
 }
 

@@ -910,6 +910,7 @@ export function SignalzenWidget({
   const [session, setSession] = useState<SessionResponse | undefined>(undefined);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("loading");
   const pollStarted = useRef(false);
+  const [sessionKey, setSessionKey] = useState(0);
 
   useEffect(() => {
     if (!appId || pollStarted.current) return;
@@ -925,7 +926,10 @@ export function SignalzenWidget({
       setSessionStatus("live");
     }
 
+    let cancelled = false;
+
     const poll = async () => {
+      if (cancelled) return;
       const userUuid = getUserUuid();
       try {
         const s = userUuid
@@ -939,12 +943,14 @@ export function SignalzenWidget({
             })
           : await fetchGuestSession(appId, windowUuid, firstDone, language);
         firstDone = true;
-        setSession(s);
-        setSessionStatus("live");
+        if (!cancelled) {
+          setSession(s);
+          setSessionStatus("live");
+        }
       } catch {
         // keep polling on error
       }
-      setTimeout(poll, 20_000);
+      if (!cancelled) setTimeout(poll, 20_000);
     };
 
     if (prefetched) {
@@ -952,7 +958,12 @@ export function SignalzenWidget({
     } else {
       void poll();
     }
-  }, [appId]);
+
+    return () => {
+      cancelled = true;
+      pollStarted.current = false;
+    };
+  }, [appId, sessionKey]);
 
   const applySession = useCallback((s: SessionResponse) => {
     setSession(s);
@@ -985,6 +996,17 @@ export function SignalzenWidget({
   const [gdprAccepted, setGdprAccepted] = useState(
     () => initialGdprAccepted || readCookie(cookieKey("_signalZen_gdpr_accepted")) === "true",
   );
+
+  useEffect(() => {
+    const handler = () => {
+      pollStarted.current = false;
+      setSession(undefined);
+      setSessionStatus("loading");
+      setSessionKey((k) => k + 1);
+    };
+    document.addEventListener("signalzen.changeUuid", handler);
+    return () => document.removeEventListener("signalzen.changeUuid", handler);
+  }, []);
 
   const readyFired = useRef(false);
   useEffect(() => {
