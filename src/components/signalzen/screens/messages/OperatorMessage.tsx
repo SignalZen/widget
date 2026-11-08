@@ -18,9 +18,11 @@ export function OperatorMessage({
 }) {
   const time = msg.created_at ? formatTime(msg.created_at) : "";
   const senderName = msg.sender?.forename ?? "Agent";
-  const hasText = !!(msg.json_body || msg.body);
+  const translatedBody = msg.translated_body;
+  const hasText = !!(translatedBody || msg.json_body || msg.body);
   const files = msg.files ?? [];
-  const plainText = msg.json_body ? extractLexicalText(msg.json_body) : (msg.body ?? "");
+  const plainText =
+    translatedBody ?? (msg.json_body ? extractLexicalText(msg.json_body) : (msg.body ?? ""));
   const preview = useLinkPreview(plainText);
 
   return (
@@ -34,7 +36,12 @@ export function OperatorMessage({
         )}
         {hasText && (
           <div className="inline-block rounded-2xl rounded-tl-md border border-border bg-card px-3.5 py-2 text-[14px] leading-relaxed text-foreground">
-            {msg.json_body ? (
+            {translatedBody ? (
+              <LinkedText
+                text={translatedBody}
+                linkClassName="underline decoration-muted-foreground underline-offset-2 hover:text-accent"
+              />
+            ) : msg.json_body ? (
               <LexicalContent json={msg.json_body} />
             ) : (
               <LinkedText
