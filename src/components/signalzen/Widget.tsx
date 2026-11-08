@@ -315,6 +315,7 @@ function WidgetCore({
         <LauncherPopup
           sender={activePopupInfo.msg.sender?.forename}
           avatarUrl={activePopupInfo.msg.sender?.picture_medium_url ?? undefined}
+          translatedBody={activePopupInfo.msg.translated_body ?? undefined}
           jsonBody={activePopupInfo.msg.json_body}
           body={activePopupInfo.msg.body}
           files={activePopupInfo.msg.files}
@@ -796,6 +797,7 @@ export function Launcher({
 }
 
 export function LauncherPopup({
+  translatedBody,
   jsonBody,
   body,
   files,
@@ -804,6 +806,7 @@ export function LauncherPopup({
   onOpen,
   onDismiss,
 }: {
+  translatedBody?: string;
   jsonBody?: unknown;
   body?: string;
   files?: ApiFile[];
@@ -867,7 +870,9 @@ export function LauncherPopup({
             </div>
           )}
           <div className="text-sm leading-snug">
-            {jsonBody ? (
+            {translatedBody ? (
+              <span className="text-foreground">{translatedBody}</span>
+            ) : jsonBody ? (
               <LexicalContent json={jsonBody} />
             ) : body ? (
               <span className="text-foreground">{body}</span>
