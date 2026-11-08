@@ -170,6 +170,7 @@ export type ApiMessage = {
   id: number | string;
   body: string;
   json_body?: unknown;
+  translated_body?: string;
   type: string;
   sender_type?: "User" | "Client" | string;
   sender?: { forename: string; picture_medium_url?: string };
