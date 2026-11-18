@@ -136,4 +136,8 @@ export const defaultTranslation: Translation = {
   chat_expand_button: "Expand",
   chat_minimize_button: "Minimize",
   chat_no_internet: "No internet connection",
+  chat_prereq_title: "Before we start",
+  chat_prereq_subtitle: "A few quick details help us reply faster.",
+  chat_prereq_button: "Start chat",
+  chat_prereq_button_loading: "Starting…",
 };
