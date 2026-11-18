@@ -1,7 +1,22 @@
 import { useState } from "react";
 import { ArrowRightIcon } from "../icons";
 import type { Field, FieldOption } from "../backend";
+import { useSession } from "../SessionProvider";
 import { cn } from "@/lib/utils";
+
+function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className={cn("animate-spin", className)}
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+      <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 type FieldValues = Record<number, string>;
 type FieldErrors = Record<number, boolean>;
@@ -146,10 +161,12 @@ export function PrerequisiteFormScreen({
   onSubmit,
 }: {
   fields: Field[];
-  onSubmit: (values: Record<string, string>) => void;
+  onSubmit: (values: Record<string, string>) => Promise<void> | void;
 }) {
+  const { translation } = useSession();
   const [values, setValues] = useState<FieldValues>(() => defaultValues(fields));
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
 
   const set = (id: number, field: Field) => (v: string) => {
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -159,7 +176,7 @@ export function PrerequisiteFormScreen({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate(fields, values);
     if (Object.keys(errs).length > 0) {
@@ -168,7 +185,12 @@ export function PrerequisiteFormScreen({
     }
     const result: Record<string, string> = {};
     for (const field of fields) result[field.title] = values[field.id] ?? "";
-    onSubmit(result);
+    setLoading(true);
+    try {
+      await onSubmit(result);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -179,9 +201,11 @@ export function PrerequisiteFormScreen({
         noValidate
       >
         <div className="mb-3">
-          <h3 className="m-0 text-[14px] font-semibold text-foreground">Before we start</h3>
+          <h3 className="m-0 text-[14px] font-semibold text-foreground">
+            {translation.chat_prereq_title}
+          </h3>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            A few quick details help us reply faster.
+            {translation.chat_prereq_subtitle}
           </p>
         </div>
 
@@ -199,10 +223,20 @@ export function PrerequisiteFormScreen({
 
         <button
           type="submit"
-          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-foreground shadow-sm hover:brightness-110"
+          disabled={loading}
+          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-foreground shadow-sm hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:brightness-100"
         >
-          Start chat
-          <ArrowRightIcon className="h-3.5 w-3.5" />
+          {loading ? (
+            <>
+              <SpinnerIcon className="h-3.5 w-3.5" />
+              {translation.chat_prereq_button_loading}
+            </>
+          ) : (
+            <>
+              {translation.chat_prereq_button}
+              <ArrowRightIcon className="h-3.5 w-3.5" />
+            </>
+          )}
         </button>
       </form>
     </div>

@@ -310,6 +310,10 @@ export type Translation = {
   chat_expand_button: string;
   chat_minimize_button: string;
   chat_no_internet: string;
+  chat_prereq_title: string;
+  chat_prereq_subtitle: string;
+  chat_prereq_button: string;
+  chat_prereq_button_loading: string;
 };
 
 export type ProActiveClient = {
